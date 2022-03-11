@@ -238,13 +238,14 @@ pub fn build_with_features(
     Ok(())
 }
 
-pub fn cmd_build(programs: Vec<String>, target_dir: PathBuf) -> Result<(), CommandError> {
+pub fn cmd_build(mut programs: Vec<String>, target_dir: PathBuf, features: &Vec<String>) -> Result<(), CommandError> {
     let current_dir = std::env::current_dir().unwrap();
-    Ok(build(
+    Ok(build_with_features(
         Path::new("cargo"),
         &current_dir,
         &target_dir,
-        programs,
+        &mut programs,
+        features,
     )?)
 }
 
