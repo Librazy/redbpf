@@ -118,4 +118,5 @@ pub mod socket_filter;
 pub mod sockmap;
 pub mod tc;
 pub mod uprobe;
+#[cfg(feature = "xdp")]
 pub mod xdp;

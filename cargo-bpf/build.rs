@@ -2,6 +2,7 @@ use regex::Regex;
 use std::env;
 use std::process::Command;
 
+#[allow(dead_code)]
 fn print_cargo_bpf_llvm_version() {
     let config_path_re = Regex::new(r"DEP_LLVM_(\d+)_CONFIG_PATH").unwrap();
     let config_paths = env::vars()
