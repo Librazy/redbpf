@@ -119,4 +119,5 @@ pub mod sockmap;
 pub mod tc;
 pub mod tracepoint;
 pub mod uprobe;
+#[cfg(feature = "xdp")]
 pub mod xdp;

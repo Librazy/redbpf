@@ -34,6 +34,7 @@ memoffset = "0.6"
 default = []
 probes = []
 ringbuf = []
+xdp = []
 
 [package.metadata.docs.rs]
 all-features = true
