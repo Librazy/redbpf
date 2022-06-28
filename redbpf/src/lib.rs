@@ -53,6 +53,7 @@ mod perf;
 mod ringbuf;
 mod symbols;
 pub mod sys;
+#[cfg(feature = "xdp")]
 pub mod xdp;
 
 pub use bpf_sys::uname;
@@ -69,8 +70,12 @@ use libbpf_sys::{
     BPF_MAP_TYPE_QUEUE, BPF_MAP_TYPE_REUSEPORT_SOCKARRAY, BPF_MAP_TYPE_RINGBUF,
     BPF_MAP_TYPE_SK_STORAGE, BPF_MAP_TYPE_SOCKHASH, BPF_MAP_TYPE_SOCKMAP, BPF_MAP_TYPE_STACK,
     BPF_MAP_TYPE_STACK_TRACE, BPF_MAP_TYPE_STRUCT_OPS, BPF_MAP_TYPE_TASK_STORAGE,
-    BPF_MAP_TYPE_XSKMAP, BPF_SK_LOOKUP, BPF_SK_SKB_STREAM_PARSER, BPF_SK_SKB_STREAM_VERDICT,
-    BPF_TRACE_ITER,
+    BPF_TRACE_ITER, BPF_SK_LOOKUP, BPF_SK_SKB_STREAM_PARSER, BPF_SK_SKB_STREAM_VERDICT,
+};
+
+#[cfg(feature = "xdp")]
+use libbpf_sys::{
+    BPF_MAP_TYPE_XSKMAP
 };
 
 use libc::{self, pid_t};
@@ -1044,6 +1049,7 @@ impl TracePoint {
     }
 }
 
+#[cfg(feature = "xdp")]
 impl XDP {
     /// Attach the XDP program.
     ///
@@ -1536,10 +1542,15 @@ impl<'a> ModuleBuilder<'a> {
                     map_builders.insert(shndx, map_builder);
                 }
                 (hdr::SHT_PROGBITS, Some(name), None)
-                    if name.starts_with(".data") || name.starts_with(".rodata") =>
+                    if name.starts_with(".data") =>
                 {
                     let map_builder = MapBuilder::with_section_data(name, &content)?;
                     map_builders.insert(shndx, map_builder);
+                }
+                (hdr::SHT_PROGBITS, Some(name), None)
+                    if name.starts_with(".rodata") =>
+                {
+                    warn!("skipping .rodata: {:#?}", &content);
                 }
                 (hdr::SHT_PROGBITS, Some("maps"), Some(name)) => {
                     let syms = symtab
@@ -2095,11 +2106,7 @@ impl<'a> MapBuilder<'a> {
             MapBuilder::SectionData { name, bytes } => Map::with_section_data(
                 name.as_ref(),
                 bytes,
-                if name.starts_with(".rodata") {
-                    libbpf_sys::BPF_F_RDONLY_PROG
-                } else {
-                    0
-                },
+                0,
             ),
             MapBuilder::ExistingMap(map) => Ok(map),
         }
@@ -3063,6 +3070,7 @@ fn bpf_percpu_map_get<K: Clone, V: Clone>(fd: RawFd, mut key: K) -> Option<PerCp
     Some(values.into())
 }
 
+#[cfg(feature = "xdp")]
 fn map_type_name(map_type: u32) -> String {
     match map_type {
         BPF_MAP_TYPE_HASH => "HashMap",
@@ -3082,6 +3090,43 @@ fn map_type_name(map_type: u32) -> String {
         BPF_MAP_TYPE_SOCKMAP => "SockMap",
         BPF_MAP_TYPE_CPUMAP => "CpuMap",
         BPF_MAP_TYPE_XSKMAP => "XskMap",
+        BPF_MAP_TYPE_SOCKHASH => "SockHashMap",
+        BPF_MAP_TYPE_CGROUP_STORAGE => "CgroupStorage",
+        BPF_MAP_TYPE_REUSEPORT_SOCKARRAY => "ReusePortSockArray",
+        BPF_MAP_TYPE_PERCPU_CGROUP_STORAGE => "PerCpuCgroupStorage",
+        BPF_MAP_TYPE_QUEUE => "Queue",
+        BPF_MAP_TYPE_STACK => "Stack",
+        BPF_MAP_TYPE_SK_STORAGE => "SkStorage",
+        BPF_MAP_TYPE_DEVMAP_HASH => "DevMapHashMap",
+        BPF_MAP_TYPE_STRUCT_OPS => "StructOps",
+        BPF_MAP_TYPE_RINGBUF => "RingBuf",
+        BPF_MAP_TYPE_INODE_STORAGE => "InodeStorage",
+        BPF_MAP_TYPE_TASK_STORAGE => "TaskStorage",
+        BPF_MAP_TYPE_BLOOM_FILTER => "BloomFilter",
+        _ => "(unknown)",
+    }
+    .to_string()
+}
+
+#[cfg(not(feature = "xdp"))]
+fn map_type_name(map_type: u32) -> String {
+    match map_type {
+        BPF_MAP_TYPE_HASH => "HashMap",
+        BPF_MAP_TYPE_ARRAY => "Array",
+        BPF_MAP_TYPE_PROG_ARRAY => "ProgramArray",
+        BPF_MAP_TYPE_PERF_EVENT_ARRAY => "PerfMap",
+        BPF_MAP_TYPE_PERCPU_HASH => "PerCpuHashMap",
+        BPF_MAP_TYPE_PERCPU_ARRAY => "PerCpuArray",
+        BPF_MAP_TYPE_STACK_TRACE => "StackTrace",
+        BPF_MAP_TYPE_CGROUP_ARRAY => "CgroupArray",
+        BPF_MAP_TYPE_LRU_HASH => "LruHashMap",
+        BPF_MAP_TYPE_LRU_PERCPU_HASH => "LruPerCpuHashMap",
+        BPF_MAP_TYPE_LPM_TRIE => "LpmTrieMap",
+        BPF_MAP_TYPE_ARRAY_OF_MAPS => "ArrayOfMaps",
+        BPF_MAP_TYPE_HASH_OF_MAPS => "HashOfMaps",
+        BPF_MAP_TYPE_DEVMAP => "DevMap",
+        BPF_MAP_TYPE_SOCKMAP => "SockMap",
+        BPF_MAP_TYPE_CPUMAP => "CpuMap",
         BPF_MAP_TYPE_SOCKHASH => "SockHashMap",
         BPF_MAP_TYPE_CGROUP_STORAGE => "CgroupStorage",
         BPF_MAP_TYPE_REUSEPORT_SOCKARRAY => "ReusePortSockArray",
