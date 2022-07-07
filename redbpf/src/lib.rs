@@ -97,7 +97,7 @@ pub use crate::ringbuf::*;
 use crate::symbols::*;
 use crate::uname::get_kernel_internal_version;
 
-use tracing::{debug, error, warn};
+use tracing::{debug, error, warn, info};
 
 #[cfg(target_arch = "aarch64")]
 pub type DataPtr = *const u8;
@@ -1550,7 +1550,7 @@ impl<'a> ModuleBuilder<'a> {
                 (hdr::SHT_PROGBITS, Some(name), None)
                     if name.starts_with(".rodata") =>
                 {
-                    warn!("skipping .rodata: {:#?}", &content);
+                    info!("skipping .rodata section");
                 }
                 (hdr::SHT_PROGBITS, Some("maps"), Some(name)) => {
                     let syms = symtab
