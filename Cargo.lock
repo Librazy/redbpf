@@ -707,7 +707,6 @@ dependencies = [
  "cargo-bpf",
  "cty",
  "glob",
- "libbpf-sys",
  "memoffset",
  "quote",
  "redbpf-macros",
